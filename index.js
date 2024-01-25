@@ -44,14 +44,13 @@ const verifyJWT = (req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    
+
     // Send a ping to confirm a successful connection
 
     const servicesCollection = client.db("car-doctor").collection("services");
     const bookingCollection = client.db("car-doctor").collection("bookings");
     app.post("/jwt", (req, res) => {
       const user = req.body;
-      console.log(req.body);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "10h",
       });
@@ -59,7 +58,12 @@ async function run() {
     });
 
     app.get("/services", async (req, res) => {
-      res.send(await servicesCollection.find().toArray());
+      console.log(req.query.search);
+      res.send(
+        await servicesCollection
+          .find({title: {$regex: req.query.search, $options: "i"}}, { sort: { price: req.query.sort === "asc" ? 1 : -1 } })
+          .toArray()
+      );
     });
     app.get("/services/:id", async (req, res) => {
       res.send(
@@ -71,8 +75,8 @@ async function run() {
     });
 
     app.get("/bookings", verifyJWT, async (req, res) => {
-      if(req.decoded.email !== req.query.email){
-        return res.status(403).send({error: 1, message: "forbidden access"});
+      if (req.decoded.email !== req.query.email) {
+        return res.status(403).send({ error: 1, message: "forbidden access" });
       }
       let query = {};
       if (req.query?.email) {
@@ -117,4 +121,4 @@ app.listen(port, () => {
   console.log(`car-doctor-server is listening on port ${port}`);
 });
 
-module.exports = app
+module.exports = app;
